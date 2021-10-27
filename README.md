@@ -1,2 +1,2 @@
-# my-mDNS
-Automatically update DNS records for dynamic ip address.
+# dDNS
+Automatically update DNS records in DirectAdmin to the UniFi controller's dynamic WAN address without any external service.
