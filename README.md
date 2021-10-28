@@ -42,9 +42,9 @@ Missing variables from the configuration file are assumed to be set in your shel
 If no configuration is provided all variables should be set.
 
 ## Automatic trigger via Crontab
-Add the following line to your contrab (`sudo crontab -e`) to trigger the DNS update every minute and log the output in syslog.
+Add the following line to your contrab (`sudo crontab -e`) to trigger the DNS update every 5-minutes and log the output in syslog.
 ```
-0 1 * * * /home/user/dns-update.sh /home/user/my-dns-update.conf 2>&1 | /usr/bin/logger -t my-dns-update
+*/5 * * * * /home/user/dns-update.sh /home/user/my-dns-update.conf 2>&1 | /usr/bin/logger -t my-dns-update
 ```
 Set the correct path to both the script and configuration.
 
