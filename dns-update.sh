@@ -129,8 +129,9 @@ function check_config { # check_config var1 var2 ...
 #
 # UI curl alias with cookie
 #
-UI_COOKIE=$(mktemp)
-alias ui_curl="/usr/bin/curl -s -S --cookie ${UI_COOKIE} --cookie-jar ${UI_COOKIE} --insecure"
+function ui_curl {
+    /usr/bin/curl -s -S --cookie ${UI_COOKIE} --cookie-jar ${UI_COOKIE} --insecure ${@}
+}
 
 
 function ui_login {
@@ -219,6 +220,7 @@ check_config DA_ADDRESS DA_USERNAME DA_LOGINKEY DA_DOMAIN DA_RECORD
 #
 # Construct derived variables
 #
+UI_COOKIE=$(mktemp)
 UI_API="${UI_ADDRESS}/proxy/network/api"
 UI_SITE_API="${UI_API}/s/${UI_SITENAME}"
 DA_SUBDOMAIN="${DA_RECORD}.${DA_DOMAIN}"
