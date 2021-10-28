@@ -8,6 +8,7 @@ The UniFi controller and DirectAdmin variables should either be set as shell (en
 #### UniFi controller
 Create a local user for the UniFi controller with read-only access.
 
+Add the following UniFi Controller variables to your shell or the configuration file.
 ```
 # UniFi controller configuration
 UI_ADDRESS = https://10.10.0.1
@@ -19,6 +20,7 @@ UI_SITENAME='default'
 #### DirectAdmin
 Create a DirectAdmin login key with `CMD_API_DNS_CONTROL` and `CMD_API_LOGIN_TEST`.
 
+Add the following DirectAdmin variables to your shell or the configuration file.
 ```
 # DirectAdmin configuration
 DA_ADDRESS='https://...'
