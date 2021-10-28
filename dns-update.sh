@@ -235,7 +235,10 @@ DA_SUBDOMAIN="${DA_RECORD}.${DA_DOMAIN}"
 IP_UDM=$(ui_wan_address)
 IP_DNS=$(da_dns_address)
 
-if [ $IP_UDM != $IP_DNS ]; then
+echo $IP_UDM
+echo $IP_DNS
+
+if [ "$IP_UDM" != "$IP_DNS" ]; then
     echo "Update DNS ip address for ${DA_RECORD}.${DA_DOMAIN} -A to ${IP_UDM}. "
     da_dns_update $IP_UDM
 else
