@@ -120,7 +120,7 @@ function check_config { # check_config var1 var2 ...
     do
         if [ -z "${!var}" ]; then
             echo "Error: variable $var is empty!"
-            exit -1
+            exit 1
         fi
     done
 }
@@ -130,7 +130,7 @@ function check_config { # check_config var1 var2 ...
 # UI curl alias with cookie
 #
 function ui_curl {
-    /usr/bin/curl -s -S --cookie ${UI_COOKIE} --cookie-jar ${UI_COOKIE} --insecure ${@}
+    /usr/bin/curl -s -S --cookie ${UI_COOKIE} --cookie-jar ${UI_COOKIE} --insecure "$@"
 }
 
 
@@ -159,8 +159,9 @@ function ui_wan_address {
 # Echo the configured UI controller's WAN ip address.
 #
     ui_login
-    response=$(ui_curl ${UI_SITE_API}/stat/sysinfo --compressed)
-    ip_addrs=$(echo $response | jq -r ".data[0].ip_addrs[0]")
+    response="$(ui_curl ${UI_SITE_API}/stat/sysinfo --compressed)"
+    ip_addrs="${response##*'"ip_addrs":["'}"
+    ip_addrs="${ip_addrs%%'"'*}"
     echo $ip_addrs
     ui_logout
 }
@@ -211,10 +212,10 @@ fi
 # Set UI and DA variables from configuration file and check if all are set.
 #
 if (($# == 1 )); then
-    parse_config $1 UI_ADDRESS UI_SITENAME UI_PASSWORD UI_SITENAME
+    parse_config $1 UI_ADDRESS UI_USERNAME UI_PASSWORD UI_SITENAME
     parse_config $1 DA_ADDRESS DA_USERNAME DA_LOGINKEY DA_DOMAIN DA_RECORD
 fi
-check_config UI_ADDRESS UI_SITENAME UI_PASSWORD UI_SITENAME
+check_config UI_ADDRESS UI_USERNAME UI_PASSWORD UI_SITENAME
 check_config DA_ADDRESS DA_USERNAME DA_LOGINKEY DA_DOMAIN DA_RECORD
 
 #
@@ -234,9 +235,6 @@ DA_SUBDOMAIN="${DA_RECORD}.${DA_DOMAIN}"
 
 IP_UDM=$(ui_wan_address)
 IP_DNS=$(da_dns_address)
-
-echo $IP_UDM
-echo $IP_DNS
 
 if [ "$IP_UDM" != "$IP_DNS" ]; then
     echo "Update DNS ip address for ${DA_RECORD}.${DA_DOMAIN} -A to ${IP_UDM}. "
