@@ -3,41 +3,53 @@ Automatically update DNS records in DirectAdmin to the UniFi UDM-Pro's dynamic W
 
 ## Preparation
 
-### UniFi controller
+The UniFi controller and DirectAdmin variables should either be set as shell (environment) variables or provided in a configuration file.
+
+#### UniFi controller
 Create a local user for the UniFi controller with read-only access.
-### DirectAdmin
+
+```
+# UniFi controller configuration
+UI_ADDRESS = https://10.10.0.1
+UI_USERNAME='...'
+UI_PASSWORD='...'
+UI_SITENAME='default'
+```
+
+#### DirectAdmin
 Create a DirectAdmin login key with `CMD_API_DNS_CONTROL` and `CMD_API_LOGIN_TEST`.
 
-## Configuration
-Modify the UniFi controller and DirectAdmin parameters in `dns-update`.
-A configuration file will be added in a new release.
-
-## Setup
-Put the files in the right folders:
 ```
-sudo cp dns-update /usr/local/bin
-sudo cp dns-update.service /etc/systemd/system
-sudo cp dns-update.timer /etc/systemd/system
-```
-
-The script `dns-update` is triggered every minute via a systemd service and timer.
-Output is handled by syslog with identifier `dns-update`.
-
-Activate the service and timer
-```
-sudo systemctl enable dns-update.service
-sudo systemctl enable dns-update.timer
-sudo systemctl start dns-update.timer
-```
-
-Check the system logs
-```
-journalctl -u dns-update
+# DirectAdmin configuration
+DA_ADDRESS='https://...'
+DA_USERNAME='...'
+DA_LOGINKEY='...'
+DA_DOMAIN='domain.example'
+DA_RECORD='sub'
 ```
 
 ## Usage
-`dns-update` is triggered by the systemd timer.
-Manually trigger the script by starting the systemd service:
+
+Simply call the script with the configuration file.
+ 
 ```
-sudo systemctl start dns-update
+bash dns-update.sh /path/to/your/dns-update.conf
 ```
+
+Missing variables from the configuration file are assumed to be set in your shell (locally or as enviroment variables).
+If no configuration is provided all variables should be set.
+
+## Automatic trigger via Crontab
+Add the following line to your contrab (`sudo crontab -e`) to trigger the DNS update every minute and log the output in syslog.
+```
+0 1 * * * /home/user/dns-update.sh /home/user/my-dns-update.conf 2>&1 | /usr/bin/logger -t my-dns-update
+```
+Set the correct path to both the script and configuration.
+
+Scan the log output
+```
+cat /var/log/syslog | grep my-dns-update
+```
+
+
+Multiple DNS records can be updated via separate configuration files (and crontab rules).
