@@ -1,0 +1,13 @@
+[Unit]
+Description=DNS ip address update
+After=network.target
+ 
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/dns-update
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=dns-update
+ 
+[Install]
+WantedBy=multi-user.target

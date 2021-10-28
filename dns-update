@@ -1,0 +1,112 @@
+#!/bin/bash
+
+##############################################################################
+# Script Name	: dns-update.sh
+# Description	: Automatically update DNS records in DirectAdmin to the UniFi
+#                 UDM-Pro's dynamic WAN address without external services.
+# Args          : n.a.
+# Author       	: Pieter Smets
+# Email         : mail@pietersmets.be
+##############################################################################
+
+# <<< UniFi controller configuration
+# Create a local user with read-only rights!
+ui_address='https://10.10.0.1'
+ui_username='...'
+ui_password='...'
+ui_sitename='default'
+# >>> UniFi controller configuration
+
+# <<< DirectAdmin configuration
+# Create a DirectAdmin login key with CMD_API_DNS_CONTROL and CMD_API_LOGIN_TEST
+da_address='https://...'
+da_username='...'
+da_loginkey='...'
+da_domain='domain.example'
+da_record='sub'
+# >>> DirectAdmin configuration
+
+#
+# Some usefull links to create this script
+#
+# https://ubntwiki.com/products/software/unifi-controller/api
+# https://gist.github.com/jcconnell/0ee6c9d5b25c572863e8ffa0a144e54b
+
+ui_api="${ui_address}/proxy/network/api"
+ui_site_api="${ui_api}/s/${ui_sitename}"
+
+ui_cookie=$(mktemp)
+
+curl_cmd="curl -s -S --cookie ${ui_cookie} --cookie-jar ${ui_cookie} --insecure "
+
+#
+# UI controller login
+#
+function ui_login {
+    ${curl_cmd} \
+        -H "Content-Type: application/json" \
+        -X POST \
+        -d "{\"password\":\"$ui_password\",\"username\":\"$ui_username\"}" \
+        $ui_address:443/api/auth/login > /dev/null
+}
+
+#
+# UI controller logout
+#
+function ui_logout {
+   ${curl_cmd} ${ui_api}/logout > /dev/null
+}
+
+#
+# Get site WAN ip address
+#
+function do_wan_address {
+    ui_login
+    response=$(${curl_cmd} ${ui_site_api}/stat/sysinfo --compressed)
+    ip_addrs=$(echo $response | jq -r ".data[0].ip_addrs[0]")
+    echo $ip_addrs
+    ui_logout
+}
+
+#
+# Get DNS domain record address
+#
+function do_dns_address {
+    /usr/bin/dig ${da_record}.${da_domain} +short
+}
+
+#
+# Update DNS record in DirectAdmin to the new ip address
+#
+function do_update_dns
+{
+    local new_ip=$1
+
+    /usr/bin/curl \
+        --request "POST" \
+        --user "${da_user}:${da_token}" \
+        -d domain=${da_domain} \
+        -d action=edit \
+        -d type=A \
+        -d arecs0=name%3D${da_record} \
+        -d name=${da_record} \
+        -d value=${new_ip} \
+        -d json=yes \
+        "${da_address}/CMD_API_DNS_CONTROL"
+}
+
+# 
+# Update sequence
+#
+ip_udm=$(do_wan_address)
+ip_dns=$(do_dns_address)
+
+if [ $ip_udm != $ip_dns ];
+then
+    echo "Update DNS ip address for ${da_record}.${da_domain} -A to ${ip_udm}. "
+    do_update_dns $ip_udm
+else
+    echo "No update needed for ${da_record}.${da_domain} -A ${ip_dns}."
+fi
+
+exit 0

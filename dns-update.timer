@@ -1,0 +1,9 @@
+[Unit]
+Description=DNS ip address update timer
+
+[Timer]
+OnActiveSec=60sec
+OnUnitActiveSec=60sec
+
+[Install]
+WantedBy=timers.target
