@@ -171,7 +171,26 @@ function da_dns_address {
 #
 # Echo the DNS A record value from your default nameserver.
 #
-    /usr/bin/dig ${DA_RECORD}.${DA_DOMAIN} +short
+    if [ x"${DA_NAMESERVER}" == "x" ]; then
+        /usr/bin/dig ${DA_RECORD}.${DA_DOMAIN} A +short
+    else
+        /usr/bin/dig @${DA_NAMESERVER} ${DA_RECORD}.${DA_DOMAIN} A +short
+    fi
+}
+
+
+function da_dns_dump {
+#
+# This function will update DNS A record in DirectAdmin to the new ip address
+#
+    local new_ip=$1
+
+    /usr/bin/curl \
+        --request "POST" \
+        --user "${DA_USERNAME}:${DA_LOGINKEY}" \
+        --data domain=${DA_DOMAIN} \
+        --data json=yes \
+        ${DA_ADDRESS}/CMD_API_DNS_CONTROL
 }
 
 
@@ -183,15 +202,15 @@ function da_dns_update {
 
     /usr/bin/curl \
         --request "POST" \
-        --user "${da_user}:${da_token}" \
-        -d domain=${DA_DOMAIN} \
-        -d action=edit \
-        -d type=A \
-        -d arecs0=name%3D${DA_RECORD} \
-        -d name=${DA_RECORD} \
-        -d value=${new_ip} \
-        -d json=yes \
-        "${DA_ADDRESS}/CMD_API_DNS_CONTROL"
+        --user "${DA_USERNAME}:${DA_LOGINKEY}" \
+        --data domain=${DA_DOMAIN} \
+        --data action=edit \
+        --data type=A \
+        --data arecs0=name%3D${DA_RECORD} \
+        --data name=${DA_RECORD} \
+        --data value=${new_ip} \
+        --data json=yes \
+        ${DA_ADDRESS}/CMD_API_DNS_CONTROL
 }
 
 
@@ -208,19 +227,26 @@ if (($# > 1 )); then
     badUsage "Illegal number of arguments"
 fi
 
+
 #
-# Set UI and DA variables from configuration file and check if all are set.
+# Set UI and DA variables
 #
+
+# Initialize defaults 
+UI_SITENAME="${UI_SITENAME:-default}"
+
+# Parse config file
 if (($# == 1 )); then
-    parse_config $1 UI_ADDRESS UI_USERNAME UI_PASSWORD UI_SITENAME
-    parse_config $1 DA_ADDRESS DA_USERNAME DA_LOGINKEY DA_DOMAIN DA_RECORD
+    parse_config $1 \
+        UI_ADDRESS UI_USERNAME UI_PASSWORD UI_SITENAME \
+        DA_ADDRESS DA_USERNAME DA_LOGINKEY DA_DOMAIN DA_RECORD DA_NAMESERVER
 fi
+
+# Check if mandatory variables are set
 check_config UI_ADDRESS UI_USERNAME UI_PASSWORD UI_SITENAME
 check_config DA_ADDRESS DA_USERNAME DA_LOGINKEY DA_DOMAIN DA_RECORD
 
-#
 # Construct derived variables
-#
 UI_COOKIE=$(mktemp)
 UI_API="${UI_ADDRESS}/proxy/network/api"
 UI_SITE_API="${UI_API}/s/${UI_SITENAME}"
@@ -233,11 +259,23 @@ DA_SUBDOMAIN="${DA_RECORD}.${DA_DOMAIN}"
 #
 #-------------------------------------------------------------------------------
 
+# Get ui_wan_address
 IP_UDM=$(ui_wan_address)
-IP_DNS=$(da_dns_address)
+if [ $? != 0 ]; then
+    echo -n "$IP_UDM"
+    exit $?
+fi
 
+# Get da_dns_address
+IP_DNS=$(da_dns_address)
+if [ $? != 0 ]; then
+    echo -n "$IP_DNS"
+    exit $?
+fi
+
+# Update if address does not match
 if [ "$IP_UDM" != "$IP_DNS" ]; then
-    echo "Update DNS ip address for ${DA_RECORD}.${DA_DOMAIN} -A to ${IP_UDM}. "
+    echo "Update DNS ip address for ${DA_RECORD}.${DA_DOMAIN} -A to ${IP_UDM}."
     da_dns_update $IP_UDM
 else
     echo "No update needed for ${DA_RECORD}.${DA_DOMAIN} -A ${IP_DNS}."
