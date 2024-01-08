@@ -206,6 +206,7 @@ function da_dns_update {
         --data domain=${DA_DOMAIN} \
         --data action=edit \
         --data type=A \
+        --data ttl=60 \
         --data arecs0=name%3D${DA_RECORD} \
         --data name=${DA_RECORD} \
         --data value=${new_ip} \
